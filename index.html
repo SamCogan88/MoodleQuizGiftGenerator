@@ -1,0 +1,40 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Quiz Builder</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script defer src="script.js"></script>
+    <style>
+        .answer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+<div class="container">
+    <h2 class="mb-4">Quiz Builder</h2>
+
+    <label for="questionType">Choose Question Type:</label>
+    <select class="form-control mb-3" id="questionType">
+        <option value="">Select...</option>
+        <option value="MCQ">Multiple Choice (Single Answer)</option>
+        <option value="MCQ_MA">Multiple Choice (Multiple Answers)</option>
+        <option value="TF">True/False</option>
+        <option value="Short">Short Answer</option>
+    </select>
+
+    <form id="questionForm"></form>
+
+    <button class="btn btn-primary mt-3" onclick="addQuestionToQuiz()">Add to Quiz</button>
+    <button class="btn btn-success mt-3" onclick="exportToGift()">Export to GIFT</button>
+
+    <h3 class="mt-4">Current Questions</h3>
+    <ul id="questionList" class="list-group"></ul>
+</div>
+
+</body>
+</html>
