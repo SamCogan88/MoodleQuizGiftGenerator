@@ -1,3 +1,6 @@
+// Import the GIFT formatter module
+import { exportToGiftFile } from './gift-formatter.js';
+
 const QUESTION_TYPES = {
     MCQ: {
         name: 'Multiple Choice (Single Answer)',
@@ -34,8 +37,40 @@ const QUESTION_TYPES = {
 const form = document.getElementById('questionForm');
 const questionTypeDropdown = document.getElementById('questionType');
 const questionList = document.getElementById('questionList');
+let addQuestionBtn;
+let exportBtn;
 
 let questions = [];
+let isEditing = false;
+let currentEditIndex = -1;
+
+// Initialize the application
+function init() {
+    initQuestionTypeDropdown();
+    
+    // Set up event listeners
+    addQuestionBtn = document.getElementById('addQuestionBtn');
+    exportBtn = document.getElementById('exportBtn');
+    
+    addQuestionBtn.addEventListener('click', addQuestionToQuiz);
+    exportBtn.addEventListener('click', exportToGift);
+    
+    questionTypeDropdown.addEventListener('change', () => {
+        const type = questionTypeDropdown.value;
+        form.innerHTML = '';
+
+        if (!type) return;
+
+        const templateGenerator = QUESTION_TYPES[type].templateGenerator;
+        form.innerHTML = `
+            <label>Question Text:</label>
+            <input type="text" class="form-control mb-2" id="questionText" maxlength="200" required>
+            <div id="answersSection">
+                ${templateGenerator()}
+            </div>
+        `;
+    });
+}
 
 // Populate dropdown dynamically
 function initQuestionTypeDropdown() {
@@ -48,22 +83,6 @@ function initQuestionTypeDropdown() {
     });
 }
 
-questionTypeDropdown.addEventListener('change', () => {
-    const type = questionTypeDropdown.value;
-    form.innerHTML = '';
-
-    if (!type) return;
-
-    const templateGenerator = QUESTION_TYPES[type].templateGenerator;
-    form.innerHTML = `
-        <label>Question Text:</label>
-        <input type="text" class="form-control mb-2" id="questionText" maxlength="200" required>
-        <div id="answersSection">
-            ${templateGenerator()}
-        </div>
-    `;
-});
-
 // Template Generators
 function generateMultipleChoiceTemplate() {
     const type = questionTypeDropdown.value;
@@ -75,15 +94,15 @@ function generateMultipleChoiceTemplate() {
                 <input type="${inputType}" name="correct" class="mr-2">
                 <input type="text" class="form-control mr-2" placeholder="Answer">
                 <input type="text" class="form-control" placeholder="Feedback">
-                <button class="btn btn-danger ml-2" onclick="removeAnswer(this)">X</button>
+                <button type="button" class="btn btn-danger ml-2 remove-answer">X</button>
             </div>
             <div class="answer-row d-flex mb-2">
                 <input type="${inputType}" name="correct" class="mr-2">
                 <input type="text" class="form-control mr-2" placeholder="Answer">
                 <input type="text" class="form-control" placeholder="Feedback">
-                <button class="btn btn-danger ml-2" onclick="removeAnswer(this)">X</button>
+                <button type="button" class="btn btn-danger ml-2 remove-answer">X</button>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="addMCQAnswer()">Add Answer</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="addMCQAnswerBtn">Add Answer</button>
         </div>
     `;
 }
@@ -109,14 +128,14 @@ function generateMatchingTemplate() {
             <div class="matching-row d-flex mb-2">
                 <input type="text" class="form-control mr-2" placeholder="Sub-question">
                 <input type="text" class="form-control" placeholder="Match">
-                <button class="btn btn-danger ml-2" onclick="removeMatchingPair(this)">X</button>
+                <button type="button" class="btn btn-danger ml-2 remove-matching">X</button>
             </div>
             <div class="matching-row d-flex mb-2">
                 <input type="text" class="form-control mr-2" placeholder="Sub-question">
                 <input type="text" class="form-control" placeholder="Match">
-                <button class="btn btn-danger ml-2" onclick="removeMatchingPair(this)">X</button>
+                <button type="button" class="btn btn-danger ml-2 remove-matching">X</button>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="addMatchingPair()">Add Pair</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="addMatchingPairBtn">Add Pair</button>
         </div>
     `;
 }
@@ -138,6 +157,35 @@ function generateShortAnswerTemplate() {
             <small class="form-text text-muted">Separate multiple acceptable answers with ||</small>
         </div>
     `;
+}
+
+// Set up dynamic event handlers after template is added to DOM
+function setupDynamicEventListeners() {
+    // Add MCQ answer button
+    const addMCQBtn = document.getElementById('addMCQAnswerBtn');
+    if (addMCQBtn) {
+        addMCQBtn.addEventListener('click', addMCQAnswer);
+    }
+    
+    // Add matching pair button
+    const addMatchingBtn = document.getElementById('addMatchingPairBtn');
+    if (addMatchingBtn) {
+        addMatchingBtn.addEventListener('click', addMatchingPair);
+    }
+    
+    // Remove answer buttons
+    document.querySelectorAll('.remove-answer').forEach(btn => {
+        btn.addEventListener('click', function() {
+            removeAnswer(this);
+        });
+    });
+    
+    // Remove matching pair buttons
+    document.querySelectorAll('.remove-matching').forEach(btn => {
+        btn.addEventListener('click', function() {
+            removeMatchingPair(this);
+        });
+    });
 }
 
 // Validation Functions
@@ -183,8 +231,15 @@ function addMCQAnswer() {
         <input type="${inputType}" name="correct" class="mr-2">
         <input type="text" class="form-control mr-2" placeholder="Answer">
         <input type="text" class="form-control" placeholder="Feedback">
-        <button class="btn btn-danger ml-2" onclick="removeAnswer(this)">X</button>
+        <button type="button" class="btn btn-danger ml-2 remove-answer">X</button>
     `;
+    
+    // Add event listener to the remove button
+    const removeBtn = newRow.querySelector('.remove-answer');
+    removeBtn.addEventListener('click', function() {
+        removeAnswer(this);
+    });
+    
     container.insertBefore(newRow, container.lastElementChild);
 }
 
@@ -199,8 +254,15 @@ function addMatchingPair() {
     newRow.innerHTML = `
         <input type="text" class="form-control mr-2" placeholder="Sub-question">
         <input type="text" class="form-control" placeholder="Match">
-        <button class="btn btn-danger ml-2" onclick="removeMatchingPair(this)">X</button>
+        <button type="button" class="btn btn-danger ml-2 remove-matching">X</button>
     `;
+    
+    // Add event listener to the remove button
+    const removeBtn = newRow.querySelector('.remove-matching');
+    removeBtn.addEventListener('click', function() {
+        removeMatchingPair(this);
+    });
+    
     container.insertBefore(newRow, container.lastElementChild);
 }
 
@@ -292,47 +354,18 @@ function processShortAnswers() {
 function addQuestionToQuiz() {
     const question = processQuestion();
     if (question) {
-        questions.push(question);
+        if (isEditing) {
+            // Insert at previous position instead of push
+            questions.splice(currentEditIndex, 0, question);
+            
+            // Reset editing state
+            isEditing = false;
+            addQuestionBtn.textContent = 'Add to Quiz';
+        } else {
+            questions.push(question);
+        }
+        
         updateQuestionList();
-        
-        // Log questions in GIFT format to console
-        console.log('Current Questions in GIFT Format:');
-        questions.forEach((q, index) => {
-            let giftQuestion = `::Q${index + 1}:: ${q.text}\n`;
-
-            switch(q.type) {
-                case 'TF':
-                    giftQuestion += `{${q.answers.find(a => a.correct).text.toUpperCase()}}\n`;
-                    break;
-                case 'MCQ':
-                case 'MCQ_MA':
-                    giftQuestion += `{\n`;
-                    q.answers.forEach(a => {
-                        giftQuestion += `${a.correct ? '=' : '~'}${a.text}${a.feedback ? ` #${a.feedback}` : ''}\n`;
-                    });
-                    giftQuestion += '}\n';
-                    break;
-                case 'MATCHING':
-                    giftQuestion += `{\n`;
-                    q.matches.forEach(match => {
-                        giftQuestion += `=${match.subquestion} -> ${match.answer}\n`;
-                    });
-                    giftQuestion += '}\n';
-                    break;
-                case 'NUMERICAL':
-                    giftQuestion += `{#${q.range.min}..${q.range.max}`;
-                    if (q.range.errorMargin) {
-                        giftQuestion += `:${q.range.errorMargin}`;
-                    }
-                    giftQuestion += '}\n';
-                    break;
-                case 'SHORT_ANSWER':
-                    giftQuestion += `{=${q.acceptedAnswers.join(' OR ')}}\n`;
-                    break;
-            }
-            console.log(giftQuestion);
-        });
-        
         resetForm();
     }
 }
@@ -342,82 +375,84 @@ function updateQuestionList() {
     questions.forEach((q, index) => {
         const li = document.createElement('li');
         li.className = 'list-group-item d-flex justify-content-between align-items-center';
-        li.innerHTML = `
-            ${index + 1}. ${q.text} (${QUESTION_TYPES[q.type].name})
-            <span>
-                <button class="btn btn-warning btn-sm" onclick="editQuestion(${index})">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="removeQuestion(${index})">Remove</button>
-            </span>`;
+        
+        // Create text content
+        const textSpan = document.createElement('span');
+        textSpan.textContent = `${index + 1}. ${q.text} (${QUESTION_TYPES[q.type].name})`;
+        
+        // Create button container
+        const buttonsSpan = document.createElement('span');
+        
+        // Create edit button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-warning btn-sm mr-2';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => editQuestion(index));
+        
+        // Create remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-danger btn-sm';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => removeQuestion(index));
+        
+        // Add buttons to container
+        buttonsSpan.appendChild(editBtn);
+        buttonsSpan.appendChild(removeBtn);
+        
+        // Add text and buttons to list item
+        li.appendChild(textSpan);
+        li.appendChild(buttonsSpan);
+        
+        // Add list item to list
         questionList.appendChild(li);
     });
 }
+
 function removeQuestion(index) {
     questions.splice(index, 1);
     updateQuestionList();
-    
-    // Log updated questions in GIFT format
-    console.log('Current Questions in GIFT Format:');
-    questions.forEach((q, index) => {
-        let giftQuestion = `::Q${index + 1}:: ${q.text}\n`;
-
-        switch(q.type) {
-            case 'TF':
-                giftQuestion += `{${q.answers.find(a => a.correct).text.toUpperCase()}}\n`;
-                break;
-            case 'MCQ':
-            case 'MCQ_MA':
-                giftQuestion += `{\n`;
-                q.answers.forEach(a => {
-                    giftQuestion += `${a.correct ? '=' : '~'}${a.text}${a.feedback ? ` #${a.feedback}` : ''}\n`;
-                });
-                giftQuestion += '}\n';
-                break;
-            case 'MATCHING':
-                giftQuestion += `{\n`;
-                q.matches.forEach(match => {
-                    giftQuestion += `=${match.subquestion} -> ${match.answer}\n`;
-                });
-                giftQuestion += '}\n';
-                break;
-            case 'NUMERICAL':
-                giftQuestion += `{#${q.range.min}..${q.range.max}`;
-                if (q.range.errorMargin) {
-                    giftQuestion += `:${q.range.errorMargin}`;
-                }
-                giftQuestion += '}\n';
-                break;
-            case 'SHORT_ANSWER':
-                giftQuestion += `{=${q.acceptedAnswers.join(' OR ')}}\n`;
-                break;
-        }
-        console.log(giftQuestion);
-    });
 }
+
 function editQuestion(index) {
+    isEditing = true;
+    currentEditIndex = index;
+    
+    // Update button text
+    addQuestionBtn.textContent = 'Save Question';
+    
     const q = questions[index];
     questionTypeDropdown.value = q.type;
+    
+    // Trigger the change event to update the form
     questionTypeDropdown.dispatchEvent(new Event('change'));
-    document.getElementById('questionText').value = q.text;
+    
+    // After form is updated, we need to set up the dynamic event listeners
+    setTimeout(() => {
+        setupDynamicEventListeners();
+        
+        // Now fill in the question data
+        document.getElementById('questionText').value = q.text;
 
-    // Restore question-specific details
-    switch(q.type) {
-        case 'MCQ':
-        case 'MCQ_MA':
-            restoreMultipleChoiceAnswers(q.answers);
-            break;
-        case 'TF':
-            restoreTrueFalseAnswer(q.answers);
-            break;
-        case 'MATCHING':
-            restoreMatchingPairs(q.matches);
-            break;
-        case 'NUMERICAL':
-            restoreNumericalRange(q.range);
-            break;
-        case 'SHORT_ANSWER':
-            restoreShortAnswers(q.acceptedAnswers);
-            break;
-    }
+        // Restore question-specific details
+        switch(q.type) {
+            case 'MCQ':
+            case 'MCQ_MA':
+                restoreMultipleChoiceAnswers(q.answers);
+                break;
+            case 'TF':
+                restoreTrueFalseAnswer(q.answers);
+                break;
+            case 'MATCHING':
+                restoreMatchingPairs(q.matches);
+                break;
+            case 'NUMERICAL':
+                restoreNumericalRange(q.range);
+                break;
+            case 'SHORT_ANSWER':
+                restoreShortAnswers(q.acceptedAnswers);
+                break;
+        }
+    }, 0);
 
     questions.splice(index, 1);
     updateQuestionList();
@@ -430,52 +465,87 @@ function restoreMultipleChoiceAnswers(answers) {
     
     const container = document.getElementById('mcqAnswers');
     container.innerHTML = '';
+    
     answers.forEach(answer => {
         const row = document.createElement('div');
         row.className = 'answer-row d-flex mb-2';
         row.innerHTML = `
             <input type="${inputType}" name="correct" class="mr-2" ${answer.correct ? 'checked' : ''}>
-            <input type="text" class="form-control mr-2" value="${answer.text}">
-            <input type="text" class="form-control" value="${answer.feedback}">
-            <button class="btn btn-danger ml-2" onclick="removeAnswer(this)">X</button>
+            <input type="text" class="form-control mr-2" value="${answer.text || ''}">
+            <input type="text" class="form-control" value="${answer.feedback || ''}">
+            <button type="button" class="btn btn-danger ml-2 remove-answer">X</button>
         `;
+        
+        // Add event listener to the remove button
+        const removeBtn = row.querySelector('.remove-answer');
+        removeBtn.addEventListener('click', function() {
+            removeAnswer(this);
+        });
+        
         container.appendChild(row);
     });
-    container.innerHTML += `
-        <button type="button" class="btn btn-secondary btn-sm" onclick="addMCQAnswer()">Add Answer</button>
-    `;
+    
+    // Add the "Add Answer" button
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'btn btn-secondary btn-sm';
+    addButton.textContent = 'Add Answer';
+    addButton.id = 'addMCQAnswerBtn';
+    addButton.addEventListener('click', addMCQAnswer);
+    
+    container.appendChild(addButton);
 }
 
 function restoreTrueFalseAnswer(answers) {
     const trueOption = document.getElementById('trueOption');
     const falseOption = document.getElementById('falseOption');
-    trueOption.checked = answers.find(a => a.text === 'True').correct;
-    falseOption.checked = answers.find(a => a.text === 'False').correct;
+    const trueAnswer = answers.find(a => a.text === 'True');
+    if (trueAnswer) {
+        trueOption.checked = trueAnswer.correct;
+        falseOption.checked = !trueAnswer.correct;
+    }
 }
 
 function restoreMatchingPairs(matches) {
     const container = document.getElementById('matchingAnswers');
     container.innerHTML = '';
+    
     matches.forEach(match => {
         const row = document.createElement('div');
         row.className = 'matching-row d-flex mb-2';
         row.innerHTML = `
-            <input type="text" class="form-control mr-2" value="${match.subquestion}">
-            <input type="text" class="form-control" value="${match.answer}">
-            <button class="btn btn-danger ml-2" onclick="removeMatchingPair(this)">X</button>
+            <input type="text" class="form-control mr-2" value="${match.subquestion || ''}">
+            <input type="text" class="form-control" value="${match.answer || ''}">
+            <button type="button" class="btn btn-danger ml-2 remove-matching">X</button>
         `;
+        
+        // Add event listener to the remove button
+        const removeBtn = row.querySelector('.remove-matching');
+        removeBtn.addEventListener('click', function() {
+            removeMatchingPair(this);
+        });
+        
         container.appendChild(row);
     });
-    container.innerHTML += `
-        <button type="button" class="btn btn-secondary btn-sm" onclick="addMatchingPair()">Add Pair</button>
-    `;
+    
+    // Add the "Add Pair" button
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'btn btn-secondary btn-sm';
+    addButton.textContent = 'Add Pair';
+    addButton.id = 'addMatchingPairBtn';
+    addButton.addEventListener('click', addMatchingPair);
+    
+    container.appendChild(addButton);
 }
 
 function restoreNumericalRange(range) {
     const inputs = document.querySelectorAll('.numerical-range input');
     inputs[0].value = range.min;
     inputs[1].value = range.max;
-    inputs[2].value = range.errorMargin || '';
+    if (range.errorMargin) {
+        inputs[2].value = range.errorMargin;
+    }
 }
 
 function restoreShortAnswers(answers) {
@@ -485,66 +555,32 @@ function restoreShortAnswers(answers) {
 function resetForm() {
     questionTypeDropdown.value = '';
     form.innerHTML = '';
+    
+    if (isEditing) {
+        isEditing = false;
+        addQuestionBtn.textContent = 'Add to Quiz';
+    }
 }
 
 function exportToGift() {
-    if (questions.length === 0) {
-        alert('No questions to export');
-        return;
-    }
+    exportToGiftFile(questions);
+}
 
-    let gift = '';
-    questions.forEach((q, index) => {
-        gift += `::Q${index + 1}:: ${q.text}\n`;
-
-        switch(q.type) {
-            case 'TF':
-                gift += `{${q.answers.find(a => a.correct).text.toUpperCase()}}\n\n`;
-                break;
-            case 'MCQ':
-                gift += `{\n`;
-                q.answers.forEach(a => {
-                    gift += `${a.correct ? '=' : '~'}${a.text}${a.feedback ? ` #${a.feedback}` : ''}\n`;
-                });
-                gift += '}\n\n';
-                break;
-            case 'MCQ_MA':
-                gift += `{\n`;
-                q.answers.forEach(a => {
-                    gift += `${a.correct ? '=' : '~'}${a.text}${a.feedback ? ` #${a.feedback}` : ''}\n`;
-                });
-                gift += '}\n\n';
-                break;
-            case 'MATCHING':
-                gift += `{\n`;
-                q.matches.forEach(match => {
-                    gift += `=${match.subquestion} -> ${match.answer}\n`;
-                });
-                gift += '}\n\n';
-                break;
-            case 'NUMERICAL':
-                gift += `{#${q.range.min}..${q.range.max}`;
-                if (q.range.errorMargin) {
-                    gift += `:${q.range.errorMargin}`;
-                }
-                gift += '}\n\n';
-                break;
-            case 'SHORT_ANSWER':
-                gift += `{=${q.acceptedAnswers.join(' OR ')}}\n\n`;
-                break;
-        }
+// Initialize the app when DOM is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    
+    // Set up MutationObserver to detect when form changes
+    const observer = new MutationObserver(() => {
+        setupDynamicEventListeners();
     });
+    
+    // Start observing the form for changes
+    observer.observe(form, { childList: true, subtree: true });
+});
 
-    downloadTextFile('quiz.txt', gift);
-}
-
-function downloadTextFile(filename, content) {
-    const blob = new Blob([content], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-}
-
-// Initialize dropdown on page load
-document.addEventListener('DOMContentLoaded', initQuestionTypeDropdown);
+// Make necessary functions available to HTML
+window.addMCQAnswer = addMCQAnswer;
+window.removeAnswer = removeAnswer;
+window.addMatchingPair = addMatchingPair;
+window.removeMatchingPair = removeMatchingPair;

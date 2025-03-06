@@ -1,10 +1,9 @@
-
 <!doctype html>
 <html lang="en">
 <head>
     <title>Quiz Builder</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script defer src="script.js"></script>
+    <script type="module" src="script.js"></script>
     <style>
         .answer-row {
             display: flex;
@@ -24,13 +23,15 @@
         <option value="MCQ">Multiple Choice (Single Answer)</option>
         <option value="MCQ_MA">Multiple Choice (Multiple Answers)</option>
         <option value="TF">True/False</option>
-        <option value="Short">Short Answer</option>
+        <option value="SHORT_ANSWER">Short Answer</option>
+        <option value="MATCHING">Matching</option>
+        <option value="NUMERICAL">Numerical Range</option>
     </select>
 
     <form id="questionForm"></form>
 
-    <button class="btn btn-primary mt-3" onclick="addQuestionToQuiz()">Add to Quiz</button>
-    <button class="btn btn-success mt-3" onclick="exportToGift()">Export to GIFT</button>
+    <button class="btn btn-primary mt-3" id="addQuestionBtn">Add to Quiz</button>
+    <button class="btn btn-success mt-3" id="exportBtn">Export to GIFT</button>
 
     <h3 class="mt-4">Current Questions</h3>
     <ul id="questionList" class="list-group"></ul>
