@@ -15,7 +15,34 @@
 <body class="p-4">
 
 <div class="container">
-    <h2 class="mb-4">Quiz Builder</h2>
+    <div class="container d-flex justify-content-between align-items-center mb-4">
+		<h2 class="mb-0">Quiz Builder</h2>
+		<button class="btn btn-info" type="button" data-toggle="collapse" data-target="#introContainer" aria-expanded="false" aria-controls="introContainer">
+			How to Use
+		</button>
+	</div>
+
+
+    <div class="collapse mt-3" id="introContainer">
+        <div class="card card-body">
+            <h5>Welcome to the GIFT Question Creator</h5>
+            <p>
+                This tool allows you to quickly write quiz questions and export them in 
+                <a href="https://docs.moodle.org/402/en/GIFT_format" target="_blank">GIFT format</a>, 
+                which is supported by Moodle for bulk question imports.
+            </p>
+            <p>
+                Simply choose the type, enter your questions into the form,(multiple choice, true/false, short answer, etc.), and 
+                add your answers and optionally feedback. When you're ready, you can export everything as a single GIFT file to upload into Moodle.<br />
+				Make sure to use the radio buttons/checkbox to indicated which answer/s are correct.
+            </p>
+            <p>
+                Used for creating Moodle quizzes quickly without needing to write out the GIFT syntax yourself.
+            </p>
+            <p class="text-muted">Tip: If you're not sure how GIFT works, check out <a href="https://docs.moodle.org/402/en/GIFT_format" target="_blank">this guide</a>.</p>
+        </div>
+    </div>
+
 
     <label for="questionType">Choose Question Type:</label>
     <select class="form-control mb-3" id="questionType">
@@ -35,7 +62,10 @@
 
     <h3 class="mt-4">Current Questions</h3>
     <ul id="questionList" class="list-group"></ul>
-</div>
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
+</div>
+</div>
 </body>
 </html>
